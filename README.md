@@ -37,6 +37,17 @@ OmniGit is a comprehensive Git submodule management tool designed to streamline 
 Before you begin, ensure you have the following installed:
 - Go (version 1.15 or higher)
 - Git
+- [Lazygit](https://github.com/jesseduffield/lazygit)
+
+## Commands 
+While focused on the tree, the following keys are useful to know:
+| J / K | Navigate up & down |
+| F2    | Re-enter primary folder |
+| Enter | Select Submodule |
+| q     | Quit Omnigit |
+| a     | Update all highlighted submodules |
+| u     | Update currently selected submodule |
+| l     | Open lazygit to current repo |
 
 ## Installation
 Clone the repository to your local machine:

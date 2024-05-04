@@ -9,7 +9,7 @@
 
 
 ## Overview
-OmniGit is a comprehensive Git submodule management tool designed to streamline the handling of multiple submodules within a Git repository. This application provides a graphical user interface to facilitate easy tracking and updating of submodule branches and paths.
+OmniGit is a comprehensive Git submodule management tool designed to streamline the handling of multiple submodules within multiple Git repositories. Built to be utilized within the terminal for fast operation, quick modifications, and ease-of-access.
 
 ## Features
 - Display current time and submodule status updates in real time.
@@ -22,6 +22,16 @@ OmniGit is a comprehensive Git submodule management tool designed to streamline 
   - [ ] Branches must exist / be created for all submodules selected
 - [ ] Implement [Lazygit](https://github.com/jesseduffield/lazygit) style push / pull
   - [ ] Implement `lazygit` as a built-in overlay app? (could be )
+- [ ] Multi-platform support
+  - [ ] Linux
+    - [ ] Arch
+    - [ ] Debian
+    - [ ] Ubuntu
+  - [ ] MacOS
+- [ ] Apt-distribution
+  - [ ] Choco
+  - [ ] Winget
+  - [ ] Apt-get
 
 ## Prerequisites
 Before you begin, ensure you have the following installed:

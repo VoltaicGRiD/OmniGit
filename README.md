@@ -20,7 +20,7 @@ OmniGit is a comprehensive Git submodule management tool designed to streamline 
 ## To-Do
 - [ ] Allow for updating all submodules with a single input window
   - [ ] Branches must exist / be created for all submodules selected
-- [ ] Implement ![Lazygit](https://github.com/jesseduffield/lazygit) style push / pull
+- [ ] Implement [Lazygit](https://github.com/jesseduffield/lazygit) style push / pull
   - [ ] Implement `lazygit` as a built-in overlay app? (could be )
 
 ## Prerequisites

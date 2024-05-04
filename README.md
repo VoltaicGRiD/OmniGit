@@ -41,6 +41,8 @@ Before you begin, ensure you have the following installed:
 
 ## Commands 
 While focused on the tree, the following keys are useful to know:
+| Key | Output |
+| ----- | ------------------ |
 | J / K | Navigate up & down |
 | F2    | Re-enter primary folder |
 | Enter | Select Submodule |

@@ -1,6 +1,6 @@
 # OmniGit
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![0.1](https://img.shields.io/badge/version-0.1 Beta-green)
+![0.1](https://img.shields.io/badge/version-0.1%20Beta-green)
 
 ![GitHub issues](https://img.shields.io/github/issues/VoltaicGRiD/omnigit)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/VoltaicGRiD/omnigit)
@@ -21,7 +21,7 @@ OmniGit is a comprehensive Git submodule management tool designed to streamline 
 - [ ] Allow for updating all submodules with a single input window
   - [ ] Branches must exist / be created for all submodules selected
 - [ ] Implement ![Lazygit](https://github.com/jesseduffield/lazygit) style push / pull
-  - [ ] Implement `lazygit` as a built-in overlay app? (could be useful...)
+  - [ ] Implement `lazygit` as a built-in overlay app? (could be )
 
 ## Prerequisites
 Before you begin, ensure you have the following installed:

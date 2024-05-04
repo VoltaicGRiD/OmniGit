@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	// "github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -234,7 +233,7 @@ func RequestUpdate(subm Submodule) {
 				if updateForm.GetFormItemIndex("New branch") == -1 {
 					updateForm.AddInputField("New branch", "", 0, nil, func(text string) {
 						subm.newCustomBranch = text
-					})
+				})
 					updateForm.AddCheckbox("Create remote branch", true, func(checked bool) {
 						subm.createRemote = checked
 					})
@@ -280,9 +279,11 @@ func UpdateNodes(root string, menuTree *tview.TreeView) (nodes []*tview.TreeNode
 						// Check if dir has submodules
 						submodulePath := fmt.Sprintf("%v\\.gitmodules", trimmedPath)
 
+						newNode := tview.NewTreeNode(dir.Name())
+						newNode.SetReference(trimmedPath)
+						menuTree.GetRoot().AddChild(newNode)
+
 						if _, err := os.Stat(submodulePath); err == nil {
-							newNode := tview.NewTreeNode(dir.Name())
-							menuTree.GetRoot().AddChild(newNode)
 							file, err := os.Open(submodulePath)
 							if err != nil {
 							} else {
@@ -349,9 +350,6 @@ func UpdateNodes(root string, menuTree *tview.TreeView) (nodes []*tview.TreeNode
 								}
 								newNode.SetReference(submodules)
 							}
-						} else {
-							newNode := tview.NewTreeNode(dir.Name())
-							menuTree.GetRoot().AddChild(newNode)
 						}
 					}
 				}
@@ -417,17 +415,18 @@ func main() {
 		return tview.NewGrid()
 	}
 
-	menu := newGrid().SetRows(0, 4).SetColumns(0)
+	menu := newGrid().SetRows(0, 5).SetColumns(0)
 	menuTree := tview.NewTreeView()
 	menuTreeRoot := tview.NewTreeNode("Current Dir")
 	menuTree.SetRoot(menuTreeRoot).SetCurrentNode(menuTreeRoot)
 	menu.AddItem(menuTree, 0, 0, 1, 1, 0, 0, false)
-	menuHelp := newTextView(fmt.Sprintf("J / K : Up / Down\nu : Update Submodule(s)\nq : Quit OmniGit\na : Update all highlighted"))
+	menuHelp := newTextView(fmt.Sprintf("J / K : Up / Down\nu : Update Submodule(s)\nq : Quit OmniGit\na : Update all highlighted\nl : Open Lazygit"))
 	menu.AddItem(menuHelp, 1, 0, 1, 1, 0, 0, false)
 	main := newTextView("Main content")
 
 	header := newTextView("")
 	dirInput := newInputField("Parent repo directory: ").SetText(cwd)
+	dirOutput := newTextView("")
 	log = newTextView("").SetTextAlign(tview.AlignLeft).SetDynamicColors(true).SetRegions(true)
 
 	grid := tview.NewGrid().
@@ -455,12 +454,24 @@ func main() {
 	app = tview.NewApplication()
 	nodes := []*tview.TreeNode{}
 	currentDir := dirInput.GetText()
+	dirOutput.SetText(currentDir)
 
 	dirInput.SetDoneFunc(func(key tcell.Key) {
+		menuTree.GetRoot().ClearChildren()
+		grid.RemoveItem(dirInput)
+		grid.AddItem(dirOutput, 1, 0, 1, 3, 0, 0, false)
+		currentDir := dirInput.GetText()
+		dirOutput.SetText(currentDir)
 		app.SetFocus(menuTree)
 	})
 
 	menuTree.SetInputCapture(func(key *tcell.EventKey) *tcell.EventKey {
+		if key.Key() == tcell.KeyF2 {
+			grid.RemoveItem(dirOutput)
+			grid.AddItem(dirInput, 1, 0, 1, 3, 0, 0, false)
+			app.SetFocus(dirInput)
+		}
+
 		if key.Rune() == 'u' {
 			c := menuTree.GetCurrentNode()
 			var submodule Submodule
@@ -497,6 +508,94 @@ func main() {
 				RequestUpdate(element)
 				pages.ShowPage("update")
 			}
+		}
+
+		if key.Rune() == 'l' {
+			c := menuTree.GetCurrentNode()
+			var path string
+			if p, ok := c.GetReference().(Submodule); ok {
+				path = fmt.Sprintf("%v\\%v", p.parent, p.path)
+
+			} else if p, ok := c.GetReference().([]Submodule); ok {
+				path = p[0].parent
+			} else if p, ok := c.GetReference().(string); ok {
+				path = p
+			}
+
+			cmd := exec.Command("lazygit", []string{"-p", path}...)
+			stderr, err := cmd.StderrPipe()
+
+			exists := true
+
+			app.Suspend(func() {
+				if err != nil {
+					WriteErr(err.Error())
+					return
+				}
+
+				if err := cmd.Start(); err != nil {
+					WriteErr(err.Error())
+					return
+				}
+
+				slurp, _ := io.ReadAll(stderr)
+				slurpout := fmt.Sprintf("%s", slurp)
+				WriteErr(slurpout)
+
+				if strings.Contains(slurpout, "is not a valid git repository") {
+					exists = false
+					return
+				}
+
+				if err := cmd.Wait(); err != nil {
+					WriteErr(err.Error())
+					return
+				}
+
+				return
+			})
+
+			if exists == false {
+				create := false
+
+				createRepoForm := tview.NewForm()
+				createRepoModal := NewModal(createRepoForm, 40, 8)
+				pages.AddPage("create", createRepoModal, true, true)
+
+				createRepoForm.
+					Clear(true).
+					AddTextView("Not a repo", "create one?", 0, 1, true, true).
+					AddButton("Yes", func() {
+						create = true
+						pages.RemovePage("create")
+						app.SetFocus(menuTree)
+					}).
+					AddButton("No", func() {
+						create = false
+						pages.RemovePage("create")
+						app.SetFocus(menuTree)
+					}).
+					SetBackgroundColor(tcell.ColorDarkGray).
+					SetBorder(true)
+
+				app.SetFocus(createRepoForm)
+
+				if create == true {
+					cmd := exec.Command("git", []string{"-C", path, "init"}...)
+
+					if err := cmd.Start(); err != nil {
+						WriteErr(err.Error())
+					}
+
+					if err := cmd.Wait(); err != nil {
+						WriteErr(err.Error())
+					}
+
+					WriteLog(fmt.Sprintf("Git repository initialized for [green::b]%v[-:-:-]", path))
+				}
+
+			}
+
 		}
 
 		if key.Rune() == 'q' {

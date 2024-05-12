@@ -18,10 +18,13 @@ OmniGit is a comprehensive Git submodule management tool designed to streamline 
 - Graphical interface built with `tview` and `tcell` for a more intuitive user experience.
 
 ## To-Do
-- [ ] Allow for updating all submodules with a single input window
+- [X] ~~Allow for updating all submodules with a single input window~~ 
+  - Now implemented as the elusive "Omni-update" function
   - [ ] Branches must exist / be created for all submodules selected
 - [X] ~~Implement [Lazygit](https://github.com/jesseduffield/lazygit) style push / pull~~
   - [X] ~~Implement `lazygit` as a built-in overlay app? (could be useful)~~
+- [ ] Update the Omni-update form to be more functional 
+- [ ] Perform / write extensive tests for the Omni-update function
 - [ ] Multi-platform support
   - [ ] Linux
     - [ ] Arch
@@ -41,15 +44,20 @@ Before you begin, ensure you have the following installed:
 
 ## Commands 
 While focused on the tree, the following keys are useful to know:
-| Key | Output |
+| Key | Function |
 | ----- | ------------------ |
-| J / K | Navigate up & down |
 | F2    | Re-enter primary folder |
-| Enter | Select Submodule |
-| q     | Quit Omnigit |
+| j     | Navigate down |
+| k     | Navigate up |
 | a     | Update all highlighted submodules |
 | u     | Update currently selected submodule |
 | l     | Open lazygit to current repo |
+| q     | Quit Omnigit |
+
+| Key   | Special "Omni" Function                      |
+|-------|---------------------------------------|
+| o     | Omni-update all highlighted submodules |
+| Enter | Highlight Submodule for "Omni-update" |
 
 ## Installation
 Clone the repository to your local machine:
@@ -63,11 +71,20 @@ Build the application with:
 go build -o omnigit
 ```
 
+Or install the application with:
+```bash
+go install
+```
+
 ## Usage
 Run the application using:
-
 ```bash
 ./omnigit
+```
+
+Or, if it was installed:
+```bash
+omnigit
 ```
 
 Navigate through the interface using the keyboard. Use the 'a' key to apply updates to all submodules, 'u' to update the highlighted repo's submodules, or an individule submodule, 'RET' to highlight a submodule for the 'a' command, and 'q' to quit the application.

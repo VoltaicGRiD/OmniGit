@@ -761,6 +761,26 @@ func main() {
 		return key
 	})
 
+	menuTree.GetCurrentNode().ClearChildren()
+
+	trimmedDir := strings.TrimSpace(dirInput.GetText())
+	stat, err := os.Stat(trimmedDir)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			WriteErr("Error accessing directory: " + err.Error())
+		}
+	} else {
+		if stat.IsDir() {
+			nodes = []*tview.TreeNode{}
+			nodes = UpdateNodes(trimmedDir, menuTree)
+			fmt.Println(len(nodes))
+		} else {
+			WriteErr("Not a directory: " + trimmedDir)
+		}
+	}
+
+	currentDir = trimmedDir
+
 	go func() {
 		for {
 			go getTime(currentTime)

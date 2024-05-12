@@ -1,6 +1,6 @@
 # OmniGit
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![0.1](https://img.shields.io/badge/version-0.1%20Beta-green)
+![0.2](https://img.shields.io/badge/version-0.1%20Beta-green)
 
 ![GitHub issues](https://img.shields.io/github/issues/VoltaicGRiD/omnigit)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/VoltaicGRiD/omnigit)

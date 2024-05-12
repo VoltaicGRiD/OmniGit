@@ -282,7 +282,8 @@ func RequestUpdateAll() {
 					path := subm.path
 					parent := subm.parent
 					PullSubmodule(path, parent)
-				}
+				
+}
 
 				action := updateForm.GetFormItemByLabel("Action")
 				if p, ok := action.(*tview.DropDown); ok {
@@ -297,6 +298,17 @@ func RequestUpdateAll() {
 		}).
 		SetBackgroundColor(tcell.ColorDarkGray).
 		SetBorder(true)
+
+	updateForm.SetInputCapture(func(key *tcell.EventKey) *tcell.EventKey {
+		if key.Key() == tcell.KeyEscape || key.Key() == tcell.KeyEsc || key.Key() == tcell.KeyESC {
+			pages.HidePage("update")
+			app.SetFocus(menuTree)
+
+			return nil
+		}
+
+		return key
+	})
 }
 
 func RequestUpdate(subm Submodule) {
@@ -336,6 +348,17 @@ func RequestUpdate(subm Submodule) {
 		}).
 		SetBackgroundColor(tcell.ColorDarkGray).
 		SetBorder(true)
+
+	updateForm.SetInputCapture(func(key *tcell.EventKey) *tcell.EventKey {
+		if key.Key() == tcell.KeyEscape || key.Key() == tcell.KeyEsc || key.Key() == tcell.KeyESC {
+			pages.HidePage("update")
+			app.SetFocus(menuTree)
+
+			return nil
+		}
+
+		return key
+	})
 }
 
 func UpdateNodes(root string, menuTree *tview.TreeView) (nodes []*tview.TreeNode) {
@@ -510,14 +533,33 @@ func main() {
 		return tview.NewGrid()
 	}
 
-	menu := newGrid().SetRows(0, 5).SetColumns(0)
+	menu := newGrid().SetRows(0).SetColumns(0)
 	menuTree = tview.NewTreeView()
 	menuTreeRoot := tview.NewTreeNode("Current Dir")
 	menuTree.SetRoot(menuTreeRoot).SetCurrentNode(menuTreeRoot)
 	menu.AddItem(menuTree, 0, 0, 1, 1, 0, 0, false)
-	menuHelp := newTextView(fmt.Sprintf("J / K : Up / Down\nu : Update Submodule(s)\nq : Quit OmniGit\na : Update all highlighted\nl : Open Lazygit"))
-	menu.AddItem(menuHelp, 1, 0, 1, 1, 0, 0, false)
-	main := newTextView("Main content")
+	controlTable := tview.NewTable()
+	controlTable.SetCellSimple(0, 0, "Key")
+	controlTable.SetCellSimple(0, 1, " Function")
+	controlTable.SetCellSimple(2, 0, "  j  ")
+	controlTable.SetCellSimple(2, 1, " Navigate down")
+	controlTable.SetCellSimple(3, 0, "  k  ")
+	controlTable.SetCellSimple(3, 1, " Navigate up")
+	controlTable.SetCellSimple(4, 0, "  u  ")
+	controlTable.SetCellSimple(4, 1, " Update submodules or all submodules under highlighted parent individually")
+	controlTable.SetCellSimple(5, 0, "  a  ")
+	controlTable.SetCellSimple(5, 1, " Update all green-colored submodules individually")
+	controlTable.SetCellSimple(6, 0, "  l  ")
+	controlTable.SetCellSimple(6, 1, " Open lazygit to highlighted repo")
+	controlTable.SetCellSimple(7, 0, "  q  ")
+	controlTable.SetCellSimple(7, 1, " Quit OmniGit")
+	controlTable.SetCellSimple(9, 0, "  o  ")
+	controlTable.SetCellSimple(9, 1, " Omni-update all green-colored submodules simulatneously")
+	controlTable.SetCellSimple(10, 0, " RET ")
+	controlTable.SetCellSimple(10, 1, " Mark / unmark submodule for omni-update")
+	controlTable.SetSeparator(tview.Borders.Vertical)
+	main := newGrid().SetRows(0).SetColumns(0)
+	main.AddItem(controlTable, 0, 0, 1, 1, 0, 0, false)
 
 	header := newTextView("")
 	dirInput := newInputField("Parent repo directory: ").SetText(cwd)
@@ -700,7 +742,6 @@ func main() {
 		// Updates all nodes that are highlighted green, with a single update form
 		// If a branch doesn't exist for any submodule in particular, it will be created
 		if key.Rune() == 'o' {
-			WriteLog("Omni called")
 			RequestUpdateAll()
 
 			pages.ShowPage("update")
@@ -710,6 +751,7 @@ func main() {
 		}
 
 		// Closes the application
+		// TODO: Add a confirmation dialog
 		if key.Rune() == 'q' {
 			app.Stop()
 

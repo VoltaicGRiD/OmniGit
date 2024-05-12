@@ -21,6 +21,7 @@ var (
 	app *tview.Application
 	pages *tview.Pages
 	log *tview.TextView
+	menuTree *tview.TreeView
 	selected []*tview.TreeNode
 )
 
@@ -218,6 +219,86 @@ func UpdateSubmodule(subm Submodule) {
 	}
 }
 
+func RequestUpdateAll() {
+	branches := []string{}
+	subms := []Submodule{}
+
+	for _, node := range selected {
+		if p, ok := node.GetReference().(Submodule); ok {
+			newBranches := GetBranches(p)
+			for _, branch := range newBranches {
+				branches = append(branches, fmt.Sprintf("%v : %v", p.path, branch))
+			}
+			subms = append(subms, p)
+		}
+	}
+
+	for index := range branches {
+		branches[index] = fmt.Sprintf(" %v ", strings.TrimSpace(branches[index]))
+	}
+
+	var master Submodule
+	var action int
+
+	updateForm.Clear(true).
+		AddTextView("Updating", "ALL SELECTED SUBMODULES", 0, 1, false, false).
+		AddDropDown("Checkout branch ", branches, 0, func(option string, optionIndex int) {
+			if strings.Contains(option, "NEW BRANCH") {
+				if updateForm.GetFormItemIndex("New branch") == -1 {
+					updateForm.AddInputField("New branch", "", 0, nil, func(text string) {
+						master.newCustomBranch = text
+					})
+				}
+			}
+
+			if strings.Contains(option, " * ") {
+				master.newBranch = ""
+			} else {
+				master.newBranch = option
+			}
+		}).
+		AddDropDown("Action", []string{" Update submodules ", " Fetch and pull ", " Close dialog "}, 0, func(option string, optionIndex int) {
+			// 0 - update submodules
+			// 1 - fetch and pull
+			// 2 - close dialog
+		        action = optionIndex
+	        }).
+		AddButton("Submit action", func() {
+			if action == 0 {
+				for _, subm := range subms {
+					subm.newCustomBranch = master.newCustomBranch
+					subm.newBranch = master.newBranch
+					UpdateSubmodule(subm)
+				}
+
+				action := updateForm.GetFormItemByLabel("Action")
+				if p, ok := action.(*tview.DropDown); ok {
+					p.SetCurrentOption(1)
+				}
+			}
+
+			if action == 1 {
+				for _, subm := range subms {
+					path := subm.path
+					parent := subm.parent
+					PullSubmodule(path, parent)
+				}
+
+				action := updateForm.GetFormItemByLabel("Action")
+				if p, ok := action.(*tview.DropDown); ok {
+					p.SetCurrentOption(2)
+				}
+			}
+
+			if action == 2 {
+				pages.HidePage("update")
+				app.SetFocus(menuTree)
+			}
+		}).
+		SetBackgroundColor(tcell.ColorDarkGray).
+		SetBorder(true)
+}
+
 func RequestUpdate(subm Submodule) {
 	branches := GetBranches(subm)
 
@@ -366,17 +447,31 @@ func UpdateNodes(root string, menuTree *tview.TreeView) (nodes []*tview.TreeNode
 	return nodes
 }
 
-func WriteLog(text string) {
+// Writes a message to the logger
+// This message is not formatted before being output
+func WriteLog(text string) *tview.TextView {
 	w := log.BatchWriter()
 	defer w.Close()
 	fmt.Fprintln(w, text)
+
+	return log
 }
 
-func WriteErr(text string) {
-	err := fmt.Sprintf("[red]%v[white]", text)
+// Writes an error to the logger
+// Message is written-out with red text
+func WriteErr(text string) *tview.TextView {
+	err := fmt.Sprintf("[red]%v[-]", text)
 	w := log.BatchWriter()
 	defer w.Close()
 	fmt.Fprintln(w, err)
+
+	return log
+}
+
+// Clears the logger and returns it for writting
+func ClearLog() *tview.TextView {
+	log.Clear()
+	return log
 }
 
 func NewModal(p tview.Primitive, width, height int) tview.Primitive {
@@ -416,7 +511,7 @@ func main() {
 	}
 
 	menu := newGrid().SetRows(0, 5).SetColumns(0)
-	menuTree := tview.NewTreeView()
+	menuTree = tview.NewTreeView()
 	menuTreeRoot := tview.NewTreeNode("Current Dir")
 	menuTree.SetRoot(menuTreeRoot).SetCurrentNode(menuTreeRoot)
 	menu.AddItem(menuTree, 0, 0, 1, 1, 0, 0, false)
@@ -447,7 +542,7 @@ func main() {
 
 	updateForm = tview.NewForm()
 	updateForm.AddCheckbox("test", false, func(changed bool) {WriteLog(fmt.Sprintf("%t", changed))})
-	updateModal := NewModal(updateForm, 60, 20)
+	updateModal := NewModal(updateForm, 80, 20)
 
 	pages = tview.NewPages().AddPage("main", grid, true, true).AddPage("update", updateModal, true, false)
 
@@ -457,7 +552,6 @@ func main() {
 	dirOutput.SetText(currentDir)
 
 	dirInput.SetDoneFunc(func(key tcell.Key) {
-		menuTree.GetRoot().ClearChildren()
 		grid.RemoveItem(dirInput)
 		grid.AddItem(dirOutput, 1, 0, 1, 3, 0, 0, false)
 		currentDir := dirInput.GetText()
@@ -466,12 +560,14 @@ func main() {
 	})
 
 	menuTree.SetInputCapture(func(key *tcell.EventKey) *tcell.EventKey {
+		// Allows the user to re-enter the root directory to look for submodules
 		if key.Key() == tcell.KeyF2 {
 			grid.RemoveItem(dirOutput)
 			grid.AddItem(dirInput, 1, 0, 1, 3, 0, 0, false)
 			app.SetFocus(dirInput)
 		}
 
+		// Updates a submodule or multiple submodules, if the parent node is selected
 		if key.Rune() == 'u' {
 			c := menuTree.GetCurrentNode()
 			var submodule Submodule
@@ -491,6 +587,7 @@ func main() {
 			return nil
 		}
 
+		// Updates all nodes in the range with an updateForm for each and every one
 		if key.Rune() == 'a' {
 			r := menuTree.GetRoot()
 
@@ -510,6 +607,8 @@ func main() {
 			}
 		}
 
+		// Opens LazyGit to the selected repository if one exists,
+		// otherwise, prompts the user to create a git repo
 		if key.Rune() == 'l' {
 			c := menuTree.GetCurrentNode()
 			var path string
@@ -598,6 +697,19 @@ func main() {
 
 		}
 
+		// Updates all nodes that are highlighted green, with a single update form
+		// If a branch doesn't exist for any submodule in particular, it will be created
+		if key.Rune() == 'o' {
+			WriteLog("Omni called")
+			RequestUpdateAll()
+
+			pages.ShowPage("update")
+			app.SetFocus(updateForm)
+
+			return nil
+		}
+
+		// Closes the application
 		if key.Rune() == 'q' {
 			app.Stop()
 
